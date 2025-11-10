@@ -171,7 +171,7 @@ export function IssuanceModal() {
         <StepCounter currentStep={currentStep} totalSteps={totalSteps} />
         <div className="text-2xl font-bold">{env.NEXT_PUBLIC_HEADLINE}</div>
         <div className="text-sm text-muted-foreground text-center max-w-[420px]">
-          This step says to use this wallet for issuing an air credential to your account.
+          Confirm to proceed with issuing your credential. Your wallet will be used to securely store your reputation data on the Moca Network.
         </div>
         <Button
           className="w-full max-w-[200px]"
@@ -188,6 +188,9 @@ export function IssuanceModal() {
     <div className="flex flex-col gap-4 items-center">
       <StepCounter currentStep={currentStep} totalSteps={totalSteps} />
       <div className="text-2xl font-bold">{env.NEXT_PUBLIC_HEADLINE}</div>
+      <div className="text-sm text-muted-foreground text-center max-w-[420px]">
+        Connect your account, review your data, and securely store your reputation credentials on the Moca Network. This process takes just a few moments and ensures your information remains private and under your control.
+      </div>
 
       {isError ? (
         <div className="w-full max-w-[420px] text-sm text-destructive text-center">
