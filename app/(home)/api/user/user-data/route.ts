@@ -52,10 +52,13 @@ export async function POST(request: NextRequest) {
     // this could be an API to your Backend
     // this example has hardcoded data for demonstration purposes
     // the data here should match the credentialSubject schema defined in your Issuance Program
-    // you can find it in the Developer Dashboard
-    // e.g. { "name": "John Doe", "age": 30 }
-    // Make sure to include all required fields
-    const responseData = { total_volume: 21 };
+    // Schema requires:
+    // - id: string (URI format, required) - using wallet address as DID
+    // - total_balance: string (optional)
+    const responseData = {
+      id: `did:ethr:${userId}`, // Required: credentialSubject.id as URI
+      total_balance: "21", // Optional: must be string type per schema
+    };
 
     return NextResponse.json(await createUserDataResponse(responseData));
   } catch (error) {

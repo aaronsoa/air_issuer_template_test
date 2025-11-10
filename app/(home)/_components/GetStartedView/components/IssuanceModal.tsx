@@ -29,12 +29,28 @@ export function IssuanceModal() {
   }) => {
     setIsWidgetLoading(true);
     try {
-      const credentialSubject = { ...response };
-      for (const key in credentialSubject) {
-        if (credentialSubject[key] == null) {
-          delete credentialSubject[key];
+      // Clean the credentialSubject: remove null, undefined, and ensure only valid values
+      const credentialSubject: Record<string, string | number> = {};
+      for (const key in response) {
+        const value = response[key];
+        // Only include defined, non-null values that are strings or numbers
+        if (value !== null && value !== undefined) {
+          if (typeof value === 'string' || typeof value === 'number') {
+            credentialSubject[key] = value;
+          } else if (typeof value === 'object' && !Array.isArray(value)) {
+            // For objects, stringify them
+            credentialSubject[key] = JSON.stringify(value);
+          }
         }
       }
+      
+      // Log what we're sending for debugging
+      console.log("Issuing credential with:", {
+        credentialId: env.NEXT_PUBLIC_ISSUE_PROGRAM_ID,
+        credentialSubject,
+        issuerDid: env.NEXT_PUBLIC_ISSUER_DID,
+      });
+      
       await airService.issueCredential({
         authToken: jwt,
         credentialId: env.NEXT_PUBLIC_ISSUE_PROGRAM_ID,
@@ -42,6 +58,10 @@ export function IssuanceModal() {
         issuerDid: env.NEXT_PUBLIC_ISSUER_DID,
       });
       setIsSuccess(true);
+    } catch (error) {
+      console.error("Error issuing credential:", error);
+      console.error("Credential subject that failed:", credentialSubject);
+      throw error;
     } finally {
       setIsWidgetLoading(false);
     }
