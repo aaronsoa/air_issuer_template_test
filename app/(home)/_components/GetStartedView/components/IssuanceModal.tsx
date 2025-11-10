@@ -16,6 +16,7 @@ export function IssuanceModal() {
   const { accessToken, setAccessToken } = useSession();
   const [isWidgetLoading, setIsWidgetLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [showInfoNote, setShowInfoNote] = useState(false);
   let name = getNameFromAccessToken(accessToken);
   const isWalletLogin = env.NEXT_PUBLIC_AUTH_METHOD === "wallet";
   const isAirKitLogin = env.NEXT_PUBLIC_AUTH_METHOD === "airkit";
@@ -128,10 +129,34 @@ export function IssuanceModal() {
   const loadingText = !isInitialized ? "Initializing..." : "Loading...";
   const response = userData?.response;
 
+  const handleConfirmInfoNote = () => {
+    setShowInfoNote(false);
+    onContinue();
+  };
+
   if (isSuccess) {
     return (
       <div className="w-full max-w-[420px] text-sm text-center">
         🎉 Congrats! You have successfully stored your data securely.
+      </div>
+    );
+  }
+
+  // Show info note screen (Step 4) when user clicks Continue from data preview
+  if (showInfoNote && accessToken && response) {
+    return (
+      <div className="flex flex-col gap-4 items-center">
+        <div className="text-2xl font-bold">{env.NEXT_PUBLIC_HEADLINE}</div>
+        <div className="text-sm text-muted-foreground text-center max-w-[420px]">
+          This step says to use this wallet for issuing an air credential to your account.
+        </div>
+        <Button
+          className="w-full max-w-[200px]"
+          size="lg"
+          onClick={handleConfirmInfoNote}
+        >
+          Confirm
+        </Button>
       </div>
     );
   }
@@ -175,7 +200,13 @@ export function IssuanceModal() {
         <Button
           className="w-full max-w-[200px]"
           size="lg"
-          onClick={onContinue}
+          onClick={() => {
+            if (accessToken && response) {
+              setShowInfoNote(true);
+            } else {
+              onContinue();
+            }
+          }}
           isLoading={isLoading}
         >
           {isLoading
