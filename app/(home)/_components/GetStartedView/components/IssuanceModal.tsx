@@ -4,9 +4,10 @@ import { useAirkit } from "@/lib/hooks/useAirkit";
 import { useSession } from "@/lib/hooks/useSession";
 import { formatKey, getNameFromAccessToken } from "@/lib/utils";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAccount } from "wagmi";
 import { useUserData } from "../hooks";
+import { StepCounter } from "./StepCounter";
 
 export function IssuanceModal() {
   const { airService, isInitialized } = useAirkit();
@@ -134,18 +135,40 @@ export function IssuanceModal() {
     onContinue();
   };
 
+  // Calculate current step based on state
+  const { currentStep, totalSteps } = useMemo(() => {
+    const total = 4;
+    let current = 1;
+
+    if (isSuccess) {
+      current = 4; // Success step
+    } else if (showInfoNote && accessToken && response) {
+      current = 3; // Confirmation step
+    } else if (accessToken && response) {
+      current = 2; // Data preview step
+    } else {
+      current = 1; // Initial/Login step
+    }
+
+    return { currentStep: current, totalSteps: total };
+  }, [isSuccess, showInfoNote, accessToken, response]);
+
   if (isSuccess) {
     return (
-      <div className="w-full max-w-[420px] text-sm text-center">
-        🎉 Congrats! You have successfully stored your data securely.
+      <div className="w-full max-w-[420px] flex flex-col gap-4 items-center">
+        <StepCounter currentStep={currentStep} totalSteps={totalSteps} />
+        <div className="text-sm text-center">
+          🎉 Congrats! You have successfully stored your data securely.
+        </div>
       </div>
     );
   }
 
-  // Show info note screen (Step 4) when user clicks Continue from data preview
+  // Show info note screen (Step 3) when user clicks Continue from data preview
   if (showInfoNote && accessToken && response) {
     return (
       <div className="flex flex-col gap-4 items-center">
+        <StepCounter currentStep={currentStep} totalSteps={totalSteps} />
         <div className="text-2xl font-bold">{env.NEXT_PUBLIC_HEADLINE}</div>
         <div className="text-sm text-muted-foreground text-center max-w-[420px]">
           This step says to use this wallet for issuing an air credential to your account.
@@ -163,6 +186,7 @@ export function IssuanceModal() {
 
   return (
     <div className="flex flex-col gap-4 items-center">
+      <StepCounter currentStep={currentStep} totalSteps={totalSteps} />
       <div className="text-2xl font-bold">{env.NEXT_PUBLIC_HEADLINE}</div>
 
       {isError ? (
