@@ -29,12 +29,12 @@ export function IssuanceModal({ currentStep, onStepChange }: IssuanceModalProps)
   const isWalletLogin = env.NEXT_PUBLIC_AUTH_METHOD === "wallet";
   const isAirKitLogin = env.NEXT_PUBLIC_AUTH_METHOD === "airkit";
 
-  // Auto-progress to step 2 when wallet is connected and accessToken exists
+  // Auto-progress to step 2 when AIR is logged in, wallet is connected, and accessToken exists
   useEffect(() => {
-    if (isConnected && accessToken && currentStep === 1) {
+    if (airService.isLoggedIn && isConnected && accessToken && currentStep === 1) {
       onStepChange(2);
     }
-  }, [isConnected, accessToken, currentStep, onStepChange]);
+  }, [airService.isLoggedIn, isConnected, accessToken, currentStep, onStepChange]);
 
   // Fetch AIR account email when airService is logged in
   useEffect(() => {
@@ -175,6 +175,57 @@ export function IssuanceModal({ currentStep, onStepChange }: IssuanceModalProps)
     }
   };
 
+  const handleAuthorization = async () => {
+    try {
+      setIsWidgetLoading(true);
+      
+      // Step 1: Ensure AIR account is logged in
+      if (!airService.isLoggedIn) {
+        await airService.login();
+      }
+      
+      // Step 2: For wallet auth, open wallet connection modal
+      if (isWalletLogin) {
+        openConnectModal?.();
+      }
+      
+      // Step 3: For airkit-only auth, handle the full flow
+      if (isAirKitLogin && !accessToken) {
+        try {
+          const airkitToken = await airService.getAccessToken();
+          const name = (await airService.getUserInfo())?.user?.email;
+
+          const verifyRes = await fetch("/api/auth/airkit", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${airkitToken.token}`,
+            },
+            body: JSON.stringify({ name }),
+          });
+
+          const data = (await verifyRes.json()) as {
+            accessToken: string;
+            walletAddress: string;
+          };
+
+          if (!data.accessToken) {
+            throw new Error("Invalid login");
+          }
+          setAccessToken(data.accessToken);
+          await refetch();
+        } catch (error) {
+          console.error("Error during Airkit authorization:", error);
+          throw error;
+        }
+      }
+    } catch (error) {
+      console.error("Error during authorization:", error);
+    } finally {
+      setIsWidgetLoading(false);
+    }
+  };
+
   const isLoading = isWidgetLoading || !isInitialized;
   const loadingText = !isInitialized ? "Initializing..." : "Loading...";
   const response = userData?.response;
@@ -201,20 +252,14 @@ export function IssuanceModal({ currentStep, onStepChange }: IssuanceModalProps)
         </h1>
 
         <AuthorizationStatus
-          isAuthorized={isConnected && !!accessToken}
+          isAuthorized={airService.isLoggedIn && isConnected && !!accessToken}
           walletAddress={address}
         />
 
         <Button
           className="w-full max-w-[200px] bg-black hover:bg-gray-800 rounded-full font-medium"
           size="lg"
-          onClick={() => {
-            if (isWalletLogin) {
-              openConnectModal?.();
-            } else {
-              onContinue();
-            }
-          }}
+          onClick={handleAuthorization}
           isLoading={isLoading}
         >
           {isLoading
@@ -232,7 +277,7 @@ export function IssuanceModal({ currentStep, onStepChange }: IssuanceModalProps)
   const displayData = response || (currentStep === 2 ? mockUserData.response : null);
   const displayAddress = address || (currentStep === 2 ? mockAddress : undefined);
   const displayName = airAccountEmail || name || (currentStep === 2 ? mockName : "User");
-  const displayAuthorized = (isConnected && !!accessToken) || currentStep === 2;
+  const displayAuthorized = (airService.isLoggedIn && isConnected && !!accessToken) || currentStep === 2;
 
   return (
     <div className="flex flex-col gap-6 items-center max-w-lg px-4">
