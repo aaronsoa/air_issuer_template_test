@@ -24,6 +24,7 @@ export function IssuanceModal({ currentStep, onStepChange }: IssuanceModalProps)
   const { accessToken, setAccessToken } = useSession();
   const [isWidgetLoading, setIsWidgetLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [airAccountEmail, setAirAccountEmail] = useState<string | null>(null);
   let name = getNameFromAccessToken(accessToken);
   const isWalletLogin = env.NEXT_PUBLIC_AUTH_METHOD === "wallet";
   const isAirKitLogin = env.NEXT_PUBLIC_AUTH_METHOD === "airkit";
@@ -34,6 +35,38 @@ export function IssuanceModal({ currentStep, onStepChange }: IssuanceModalProps)
       onStepChange(2);
     }
   }, [isConnected, accessToken, currentStep, onStepChange]);
+
+  // Fetch AIR account email when airService is logged in
+  useEffect(() => {
+    const fetchAirAccountEmail = async () => {
+      if (airService.isLoggedIn && isInitialized) {
+        try {
+          const userInfo = await airService.getUserInfo();
+          const email = userInfo?.user?.email;
+          if (email) {
+            setAirAccountEmail(email);
+          }
+        } catch (error) {
+          console.error("Error fetching AIR account email:", error);
+        }
+      }
+    };
+    
+    fetchAirAccountEmail();
+  }, [airService, isInitialized, airService.isLoggedIn]);
+
+  // Mock data for testing Step 2 when not connected
+  const mockUserData = {
+    response: {
+      id: "did:ethr:0xabcde12345678901234567890123456789054321",
+      "Staking Tier": 3,
+      "Moca NFTs": 1,
+    },
+    jwt: "mock-jwt-token",
+  };
+
+  const mockAddress = "0xabcde12345678901234567890123456789054321";
+  const mockName = "johndoe@mail.com";
 
   const issueCredential = async ({
     response,
@@ -195,6 +228,12 @@ export function IssuanceModal({ currentStep, onStepChange }: IssuanceModalProps)
   }
 
   // Step 2: Credential Preview & Confirmation
+  // Use mock data if not connected (for testing/preview)
+  const displayData = response || (currentStep === 2 ? mockUserData.response : null);
+  const displayAddress = address || (currentStep === 2 ? mockAddress : undefined);
+  const displayName = airAccountEmail || name || (currentStep === 2 ? mockName : "User");
+  const displayAuthorized = (isConnected && !!accessToken) || currentStep === 2;
+
   return (
     <div className="flex flex-col gap-6 items-center max-w-lg px-4">
       <div className="text-sm text-gray-500 text-center">
@@ -205,17 +244,17 @@ export function IssuanceModal({ currentStep, onStepChange }: IssuanceModalProps)
         Confirm to store below credential on Moca Network
       </h1>
 
-      {isError ? (
+      {isError && isConnected ? (
         <div className="w-full max-w-[420px] text-sm text-destructive text-center">
           Failed to load user data. Please try again.
         </div>
       ) : (
         <>
-          {response && (
+          {displayData && (
             <CredentialCard
               title="Mocaverse Credential"
-              source={address || "Unknown"}
-              data={response as Record<string, string | number | object | null>}
+              source={displayAddress || "Unknown"}
+              data={displayData as Record<string, string | number | object | null>}
             />
           )}
 
@@ -240,19 +279,19 @@ export function IssuanceModal({ currentStep, onStepChange }: IssuanceModalProps)
             </div>
             <div className="text-right">
               <p className="text-xs text-gray-500">Account</p>
-              <p className="text-sm text-gray-900 font-medium">{name || "User"}</p>
+              <p className="text-sm text-gray-900 font-medium">{displayName}</p>
             </div>
           </div>
 
           {/* Authorization Status */}
           <AuthorizationStatus
-            isAuthorized={isConnected && !!accessToken}
-            walletAddress={address}
+            isAuthorized={displayAuthorized}
+            walletAddress={displayAddress}
           />
         </>
       )}
 
-      {isError ? (
+      {isError && isConnected ? (
         <Button
           className="w-full max-w-[200px] bg-black hover:bg-gray-800 rounded-full font-medium"
           size="lg"
@@ -266,6 +305,7 @@ export function IssuanceModal({ currentStep, onStepChange }: IssuanceModalProps)
           size="lg"
           onClick={onContinue}
           isLoading={isLoading}
+          disabled={!isConnected && currentStep === 2}
         >
           {isLoading ? loadingText : "Confirm"}
         </Button>

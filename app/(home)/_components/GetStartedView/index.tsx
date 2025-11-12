@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { DebuggingInfo, StepIndicator } from "./components";
+import { DebuggingInfo, StepIndicator, TestingControls } from "./components";
 import { IssuanceModal } from "./components/IssuanceModal";
 
 export const GetStartedView = () => {
@@ -19,6 +19,9 @@ export const GetStartedView = () => {
         <IssuanceModal currentStep={currentStep} onStepChange={setCurrentStep} />
         <DebuggingInfo />
       </div>
+
+      {/* Testing Controls - Dev Only */}
+      <TestingControls onForceStep2={() => setCurrentStep(2)} />
     </div>
   );
 };

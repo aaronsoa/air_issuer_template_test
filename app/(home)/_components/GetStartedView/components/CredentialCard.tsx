@@ -45,12 +45,12 @@ export function CredentialCard({ title, source, data }: CredentialCardProps) {
           </p>
           <div className="space-y-3">
             {dataEntries.map(([key, value]) => (
-              <div key={key} className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+              <div key={key} className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <Hexagon className="w-4 h-4 text-gray-400 fill-gray-100" />
                   <span className="text-sm text-gray-700">{formatKey(key)}</span>
                 </div>
-                <span className="text-sm font-semibold text-gray-900">
+                <span className="text-sm font-semibold text-gray-900 break-all text-right">
                   {typeof value === "object" && value !== null
                     ? JSON.stringify(value)
                     : String(value)}
